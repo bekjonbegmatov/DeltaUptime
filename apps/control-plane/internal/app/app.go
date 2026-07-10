@@ -80,6 +80,7 @@ func runAPI(ctx context.Context, log *slog.Logger) error {
 			AccessTokenSecret:  cfg.JWTAccessSecret,
 			RefreshTokenSecret: cfg.JWTRefreshSecret,
 			SecretsMasterKey:   cfg.SecretsMasterKey,
+			PublicPanelURL:     cfg.PublicPanelURL,
 			AccessTokenTTL:     cfg.AccessTokenTTL,
 			RefreshTokenTTL:    cfg.RefreshTokenTTL,
 		})

@@ -39,6 +39,14 @@ func (r *storeRepository) CreateAPIKey(ctx context.Context, arg postgres.CreateA
 	return r.store.Queries.CreateAPIKey(ctx, arg)
 }
 
+func (r *storeRepository) CreateAuthWebAuthnCredential(ctx context.Context, arg postgres.CreateAuthWebAuthnCredentialParams) (postgres.AuthWebauthnCredential, error) {
+	return r.store.Queries.CreateAuthWebAuthnCredential(ctx, arg)
+}
+
+func (r *storeRepository) CreateAuthWebAuthnSession(ctx context.Context, arg postgres.CreateAuthWebAuthnSessionParams) (postgres.AuthWebauthnSession, error) {
+	return r.store.Queries.CreateAuthWebAuthnSession(ctx, arg)
+}
+
 func (r *storeRepository) CreateAuditLog(ctx context.Context, arg postgres.CreateAuditLogParams) (postgres.AuditLog, error) {
 	return r.store.Queries.CreateAuditLog(ctx, arg)
 }
@@ -59,6 +67,10 @@ func (r *storeRepository) CreateUser(ctx context.Context, arg postgres.CreateUse
 	return r.store.Queries.CreateUser(ctx, arg)
 }
 
+func (r *storeRepository) DeleteAuthWebAuthnSession(ctx context.Context, id pgtype.UUID) error {
+	return r.store.Queries.DeleteAuthWebAuthnSession(ctx, id)
+}
+
 func (r *storeRepository) DeleteUserTOTPCredential(ctx context.Context, userID pgtype.UUID) error {
 	return r.store.Queries.DeleteUserTOTPCredential(ctx, userID)
 }
@@ -77,6 +89,10 @@ func (r *storeRepository) GetAPIKeyByPrefix(ctx context.Context, keyPrefix strin
 
 func (r *storeRepository) GetAuthRefreshTokenByTokenHash(ctx context.Context, tokenHash string) (postgres.AuthRefreshToken, error) {
 	return r.store.Queries.GetAuthRefreshTokenByTokenHash(ctx, tokenHash)
+}
+
+func (r *storeRepository) GetAuthWebAuthnSessionByID(ctx context.Context, id pgtype.UUID) (postgres.AuthWebauthnSession, error) {
+	return r.store.Queries.GetAuthWebAuthnSessionByID(ctx, id)
 }
 
 func (r *storeRepository) GetMembership(ctx context.Context, arg postgres.GetMembershipParams) (postgres.Membership, error) {
@@ -111,6 +127,10 @@ func (r *storeRepository) ListAuditLogsByOrganization(ctx context.Context, arg p
 	return r.store.Queries.ListAuditLogsByOrganization(ctx, arg)
 }
 
+func (r *storeRepository) ListAuthWebAuthnCredentialsByUserID(ctx context.Context, userID pgtype.UUID) ([]postgres.AuthWebauthnCredential, error) {
+	return r.store.Queries.ListAuthWebAuthnCredentialsByUserID(ctx, userID)
+}
+
 func (r *storeRepository) ListOrganizationsByUser(ctx context.Context, userID pgtype.UUID) ([]postgres.ListOrganizationsByUserRow, error) {
 	return r.store.Queries.ListOrganizationsByUser(ctx, userID)
 }
@@ -127,8 +147,16 @@ func (r *storeRepository) RotateAuthRefreshToken(ctx context.Context, arg postgr
 	return r.store.Queries.RotateAuthRefreshToken(ctx, arg)
 }
 
+func (r *storeRepository) SetUserWebAuthnHandle(ctx context.Context, arg postgres.SetUserWebAuthnHandleParams) (postgres.User, error) {
+	return r.store.Queries.SetUserWebAuthnHandle(ctx, arg)
+}
+
 func (r *storeRepository) TouchAPIKeyLastUsed(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error) {
 	return r.store.Queries.TouchAPIKeyLastUsed(ctx, id)
+}
+
+func (r *storeRepository) UpdateAuthWebAuthnCredential(ctx context.Context, arg postgres.UpdateAuthWebAuthnCredentialParams) (postgres.AuthWebauthnCredential, error) {
+	return r.store.Queries.UpdateAuthWebAuthnCredential(ctx, arg)
 }
 
 func (r *storeRepository) UpdateMembershipRole(ctx context.Context, arg postgres.UpdateMembershipRoleParams) (postgres.Membership, error) {

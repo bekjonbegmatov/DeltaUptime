@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-07-11 — WebAuthn passkeys + завершение Phase 1
+
+- **Фаза:** 1 — Идентичность и мультитенантность
+- **Что сделано:**
+  - Добавлена миграция `00004_phase1_webauthn.sql`: `users.webauthn_user_handle`,
+    `auth_webauthn_credentials`, `auth_webauthn_sessions`.
+  - В `sqlc` добавлены typed-запросы для WebAuthn credentials/sessions и
+    обновления `users.webauthn_user_handle`.
+  - `internal/auth` расширен WebAuthn/passkey-флоу:
+    - `POST /v1/auth/webauthn/register/begin|finish`
+    - `POST /v1/auth/webauthn/login/begin|finish`
+  - Сервер теперь хранит WebAuthn `SessionData` server-side, генерирует и
+    закрепляет random user handle, а credential record шифрует at-rest через
+    `SECRETS_MASTER_KEY`.
+  - Login через passkey использует user verification и после успешной проверки
+    обновляет stored credential state (`last_used_at`, актуальный credential blob).
+  - `PUBLIC_PANEL_URL` подключён в runtime config как источник RP origin / RPID
+    для WebAuthn-конфигурации.
+- **Тесты (все зелёные):**
+  - `./.bin/sqlc compile`
+  - `go build ./...`
+  - `go test ./...`
+  - `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./...` → `0 issues`
+- **Коммит/PR:** ветка `feat/auth-webauthn`.
+- **Дальше:** Phase 1 закрыта; следующий логический блок — Phase 2 (agent enrollment
+  и постоянное соединение agent ↔ control plane).
+
 ## 2026-07-11 — Identity controls: TOTP, tenancy API, RBAC, API keys, audit log
 
 - **Фаза:** 1 — Идентичность и мультитенантность
@@ -44,7 +71,7 @@
   - `go test ./...`
   - `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./...` → `0 issues`
 - **Коммит/PR:** ветка `feat/auth-totp`.
-- **Дальше:** WebAuthn, затем можно считать Phase 1 полностью закрытой.
+- **Дальше:** закрыть WebAuthn/passkey-флоу и отметить завершение Phase 1.
 
 ## 2026-07-11 — Базовый auth: Argon2id + access JWT + rotating refresh
 

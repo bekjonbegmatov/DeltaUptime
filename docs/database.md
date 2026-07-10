@@ -11,6 +11,7 @@
 Хранит конфигурацию и основные сущности:
 
 - users, organizations, memberships, roles
+- auth refresh tokens, TOTP secrets, WebAuthn credentials/sessions
 - agents, agent groups
 - monitors, notification channels, escalation policies
 - incidents, maintenance windows

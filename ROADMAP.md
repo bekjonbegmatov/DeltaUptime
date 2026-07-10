@@ -23,7 +23,7 @@ probe-агенты, регионы и инциденты).
 ## Фаза 1 — Идентичность и мультитенантность
 
 - [x] Auth: Argon2id, JWT access + rotating refresh
-- [~] TOTP / WebAuthn
+- [x] TOTP / WebAuthn
 - [x] Users, Organizations, Memberships
 - [x] Permission-based RBAC (Owner/Admin/Operator/Viewer/Billing)
 - [x] API keys + scopes

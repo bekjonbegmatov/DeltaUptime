@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -37,14 +38,18 @@ type QueryRepository interface {
 	CreateAPIKey(ctx context.Context, arg postgres.CreateAPIKeyParams) (postgres.ApiKey, error)
 	CreateAuditLog(ctx context.Context, arg postgres.CreateAuditLogParams) (postgres.AuditLog, error)
 	CreateAuthRefreshToken(ctx context.Context, arg postgres.CreateAuthRefreshTokenParams) (postgres.AuthRefreshToken, error)
+	CreateAuthWebAuthnCredential(ctx context.Context, arg postgres.CreateAuthWebAuthnCredentialParams) (postgres.AuthWebauthnCredential, error)
+	CreateAuthWebAuthnSession(ctx context.Context, arg postgres.CreateAuthWebAuthnSessionParams) (postgres.AuthWebauthnSession, error)
 	CreateMembership(ctx context.Context, arg postgres.CreateMembershipParams) (postgres.Membership, error)
 	CreateOrganization(ctx context.Context, arg postgres.CreateOrganizationParams) (postgres.Organization, error)
 	CreateUser(ctx context.Context, arg postgres.CreateUserParams) (postgres.User, error)
+	DeleteAuthWebAuthnSession(ctx context.Context, id pgtype.UUID) error
 	DeleteUserTOTPCredential(ctx context.Context, userID pgtype.UUID) error
 	EnableUserTOTPCredential(ctx context.Context, userID pgtype.UUID) (postgres.UserTotpCredential, error)
 	GetAPIKeyByID(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error)
 	GetAPIKeyByPrefix(ctx context.Context, keyPrefix string) (postgres.ApiKey, error)
 	GetAuthRefreshTokenByTokenHash(ctx context.Context, tokenHash string) (postgres.AuthRefreshToken, error)
+	GetAuthWebAuthnSessionByID(ctx context.Context, id pgtype.UUID) (postgres.AuthWebauthnSession, error)
 	GetMembership(ctx context.Context, arg postgres.GetMembershipParams) (postgres.Membership, error)
 	GetOrganizationByID(ctx context.Context, id pgtype.UUID) (postgres.Organization, error)
 	GetOrganizationBySlug(ctx context.Context, slug string) (postgres.Organization, error)
@@ -53,11 +58,14 @@ type QueryRepository interface {
 	GetUserTOTPCredentialByUserID(ctx context.Context, userID pgtype.UUID) (postgres.UserTotpCredential, error)
 	ListAPIKeysByOrganization(ctx context.Context, organizationID pgtype.UUID) ([]postgres.ApiKey, error)
 	ListAuditLogsByOrganization(ctx context.Context, arg postgres.ListAuditLogsByOrganizationParams) ([]postgres.AuditLog, error)
+	ListAuthWebAuthnCredentialsByUserID(ctx context.Context, userID pgtype.UUID) ([]postgres.AuthWebauthnCredential, error)
 	ListOrganizationsByUser(ctx context.Context, userID pgtype.UUID) ([]postgres.ListOrganizationsByUserRow, error)
 	ListUsersByOrganization(ctx context.Context, organizationID pgtype.UUID) ([]postgres.ListUsersByOrganizationRow, error)
 	RevokeAPIKey(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error)
 	RotateAuthRefreshToken(ctx context.Context, arg postgres.RotateAuthRefreshTokenParams) (postgres.AuthRefreshToken, error)
+	SetUserWebAuthnHandle(ctx context.Context, arg postgres.SetUserWebAuthnHandleParams) (postgres.User, error)
 	TouchAPIKeyLastUsed(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error)
+	UpdateAuthWebAuthnCredential(ctx context.Context, arg postgres.UpdateAuthWebAuthnCredentialParams) (postgres.AuthWebauthnCredential, error)
 	UpdateMembershipRole(ctx context.Context, arg postgres.UpdateMembershipRoleParams) (postgres.Membership, error)
 	UpsertUserTOTPCredential(ctx context.Context, arg postgres.UpsertUserTOTPCredentialParams) (postgres.UserTotpCredential, error)
 }
@@ -77,6 +85,7 @@ type Config struct {
 	AccessTokenSecret  string
 	RefreshTokenSecret string
 	SecretsMasterKey   string
+	PublicPanelURL     string
 	AccessTokenTTL     time.Duration
 	RefreshTokenTTL    time.Duration
 }
@@ -87,6 +96,7 @@ type Service struct {
 	tokens     *TokenManager
 	secrets    *SecretsManager
 	totp       *TOTPManager
+	webauthn   *webauthn.WebAuthn
 	timeNow    func() time.Time
 	totpIssuer string
 }
@@ -159,12 +169,18 @@ func NewService(store *database.Store, cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	webAuthnManager, err := newWebAuthnManager(cfg.PublicPanelURL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		repo:       newStoreRepository(store),
 		hasher:     PasswordHasher{},
 		tokens:     tokenManager,
 		secrets:    secretsManager,
 		totp:       NewTOTPManager("DeltaUptime"),
+		webauthn:   webAuthnManager,
 		timeNow:    time.Now,
 		totpIssuer: "DeltaUptime",
 	}, nil
