@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-07-11 — Каркас uptime-server + базовый docker-compose
+
+- **Фаза:** 0 — Фундамент
+- **Что сделано:**
+  - Go-модуль `deltauptime` (Go 1.25, только stdlib пока).
+  - Бинарь `uptime-server` с dispatch подкоманд `api|scheduler|worker|migrate|version|help`
+    (`apps/control-plane/cmd/uptime-server` + `internal/app`).
+  - `internal/config` — загрузка конфигурации из env с дефолтами.
+  - `internal/httpapi` — HTTP-сервер: `/healthz`, `/readyz`, graceful shutdown.
+  - `scheduler`/`worker` — заглушки (блокируются до сигнала), `migrate` — заглушка.
+  - Unit-тесты на все три пакета (dispatch, config, health-эндпоинты).
+  - `deployments/docker-compose/docker-compose.yml` — базовый стек postgres+redis+nats;
+    clickhouse и prometheus/grafana за профилями `clickhouse` / `observability`.
+  - `Makefile` (build/test/vet/lint/check/up/down), `.env.example` дополнен.
+- **Тесты:**
+  - `go build ./...`, `go vet ./...`, `go test ./...` — всё зелёное.
+  - Smoke: `uptime-server version/help/unknown` (exit=1 на неизвестной команде).
+  - E2E: `api` поднят, `/healthz`→`{"status":"ok"}`, `/readyz`→200, `/nope`→404,
+    graceful shutdown по сигналу.
+  - `docker compose config` валиден (база = 3 сервиса, с профилями = 6).
+  - Поднятие стека в Docker не проверено: Docker daemon (Desktop) не запущен.
+- **Коммит/PR:** ветка `feat/bootstrap-server-and-compose`.
+- **Дальше:** миграции (Goose) + sqlc, схема PostgreSQL, CI (GitHub Actions).
+
 ## 2026-07-11 — Решение по инфраструктуре: только Docker, метрики/observability поздней стадией
 
 - **Фаза:** 0 — Фундамент

@@ -10,12 +10,13 @@ probe-агенты, регионы и инциденты).
 
 ## Фаза 0 — Фундамент (инфраструктура и скелет)
 
-- [ ] Структура монорепозитория и документация
-- [ ] Docker Compose стек — **только базовое:** postgres, redis, nats
-      (ClickHouse/Prometheus/Grafana НЕ здесь — поздняя стадия)
-- [ ] Каркас Go-бинаря `uptime-server` с подкомандами (api/scheduler/worker/migrate)
-- [ ] Миграции (Goose) + sqlc-конфиг
-- [ ] Structured logging (slog), OpenTelemetry-ready интерфейсы в `packages/observability`
+- [x] Структура монорепозитория и документация
+- [x] Docker Compose стек — **только базовое:** postgres, redis, nats
+      (ClickHouse/Prometheus/Grafana за профилями — поздняя стадия)
+- [x] Каркас Go-бинаря `uptime-server` с подкомандами (api/scheduler/worker/migrate)
+      — api отдаёт `/healthz` `/readyz`, graceful shutdown, config из env, тесты
+- [ ] Миграции (Goose) + sqlc-конфиг (migrate пока заглушка)
+- [~] Structured logging (slog) есть; OpenTelemetry-ready интерфейсы — TODO
 - [ ] CI (GitHub Actions): build + test + lint
 
 ## Фаза 1 — Идентичность и мультитенантность

@@ -13,8 +13,9 @@ credentials.json
 *.test
 *.out
 vendor/
-uptime-server
-uptime-agent
+# Собранные бинарники в корне (не путать с каталогом cmd/uptime-server/)
+/uptime-server
+/uptime-agent
 
 # --- Node / Next.js ---
 node_modules/

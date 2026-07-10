@@ -1,0 +1,97 @@
+# DeltaUptime — базовый стек для локальной разработки.
+#
+#   docker compose up -d                              # postgres + redis + nats
+#   docker compose --profile clickhouse up -d         # + clickhouse (поздняя стадия)
+#   docker compose --profile observability up -d      # + prometheus/grafana (поздняя стадия)
+#
+# ClickHouse, Prometheus, Grafana держатся за профилями и НЕ поднимаются базовым `up`.
+
+name: deltauptime
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-uptime}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uptime}
+      POSTGRES_DB: ${POSTGRES_DB:-uptime}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-uptime} -d ${POSTGRES_DB:-uptime}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2.10-alpine
+    restart: unless-stopped
+    command: ["-js", "-m", "8222"] # JetStream + monitoring endpoint
+    ports:
+      - "4222:4222" # client
+      - "8222:8222" # monitoring
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # --- Поздняя стадия: метрики проверок при росте (профиль "clickhouse") ---
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    profiles: ["clickhouse"]
+    restart: unless-stopped
+    ports:
+      - "8123:8123" # HTTP
+      - "9000:9000" # native
+    volumes:
+      - chdata:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # --- Поздняя стадия: наблюдаемость платформы (профиль "observability") ---
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: ["observability"]
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: ["observability"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafanadata:/var/lib/grafana
+
+volumes:
+  pgdata:
+  redisdata:
+  natsdata:
+  chdata:
+  grafanadata:
