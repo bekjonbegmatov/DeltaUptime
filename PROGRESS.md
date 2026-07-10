@@ -16,6 +16,21 @@
 
 ---
 
+## 2026-07-11 — CI (GitHub Actions) + подключён GitHub remote
+
+- **Фаза:** 0 — Фундамент
+- **Что сделано:**
+  - Подключён remote `git@github.com:bekjonbegmatov/DeltaUptime.git`, запушен `main`.
+  - `.github/workflows/ci.yml` — три job: `go` (go mod tidy check, build, vet,
+    `test -race`), `lint` (golangci-lint v2.12.2), `compose` (валидация базового
+    стека и всех профилей).
+  - CI-бейдж в README.
+  - Исправлены 3 errcheck-замечания (`fmt.Fprint*` → `_, _ =`) в `internal/app`.
+- **Тесты:** локально прогнан golangci-lint v2.12.2 → `0 issues`; `go test -race`
+  и `go build` зелёные; `go mod tidy` без изменений.
+- **Коммит/PR:** ветка `chore/ci-pipeline` (после `feat/bootstrap...` смёржен в main).
+- **Дальше:** миграции (Goose) + sqlc + первая схема PostgreSQL.
+
 ## 2026-07-11 — Каркас uptime-server + базовый docker-compose
 
 - **Фаза:** 0 — Фундамент

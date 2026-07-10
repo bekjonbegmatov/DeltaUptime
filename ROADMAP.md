@@ -17,7 +17,7 @@ probe-агенты, регионы и инциденты).
       — api отдаёт `/healthz` `/readyz`, graceful shutdown, config из env, тесты
 - [ ] Миграции (Goose) + sqlc-конфиг (migrate пока заглушка)
 - [~] Structured logging (slog) есть; OpenTelemetry-ready интерфейсы — TODO
-- [ ] CI (GitHub Actions): build + test + lint
+- [x] CI (GitHub Actions): build + vet + test(-race) + golangci-lint + compose-validate
 
 ## Фаза 1 — Идентичность и мультитенантность
 

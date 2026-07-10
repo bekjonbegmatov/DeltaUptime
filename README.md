@@ -1,5 +1,7 @@
 # DeltaUptime
 
+[![CI](https://github.com/bekjonbegmatov/DeltaUptime/actions/workflows/ci.yml/badge.svg)](https://github.com/bekjonbegmatov/DeltaUptime/actions/workflows/ci.yml)
+
 > **Uptime Control Plane + Probe Network** — централизованная платформа управления
 > распределённой сетью мониторинга. Один ресурс проверяется одновременно из разных
 > стран, операторов связи и пользовательских агентов.

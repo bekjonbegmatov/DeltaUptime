@@ -32,7 +32,7 @@ Commands:
 // Run dispatches a subcommand. out is where normal output goes (stdout in main).
 func Run(ctx context.Context, args []string, out io.Writer) error {
 	if len(args) == 0 {
-		fmt.Fprint(out, usage)
+		_, _ = fmt.Fprint(out, usage)
 		return nil
 	}
 
@@ -49,10 +49,10 @@ func Run(ctx context.Context, args []string, out io.Writer) error {
 	case "migrate":
 		return runMigrate(ctx, log)
 	case "version":
-		fmt.Fprintln(out, Version)
+		_, _ = fmt.Fprintln(out, Version)
 		return nil
 	case "help", "-h", "--help":
-		fmt.Fprint(out, usage)
+		_, _ = fmt.Fprint(out, usage)
 		return nil
 	default:
 		_ = rest
