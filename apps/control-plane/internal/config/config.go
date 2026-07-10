@@ -18,6 +18,7 @@ type Config struct {
 	LogLevel         string        // LOG_LEVEL
 	JWTAccessSecret  string        // JWT_ACCESS_SECRET
 	JWTRefreshSecret string        // JWT_REFRESH_SECRET
+	SecretsMasterKey string        // SECRETS_MASTER_KEY
 	AccessTokenTTL   time.Duration // ACCESS_TOKEN_TTL
 	RefreshTokenTTL  time.Duration // REFRESH_TOKEN_TTL
 }
@@ -46,6 +47,7 @@ func Load() (Config, error) {
 		LogLevel:         getenv("LOG_LEVEL", "info"),
 		JWTAccessSecret:  getenv("JWT_ACCESS_SECRET", "dev-access-secret-not-for-production"),
 		JWTRefreshSecret: getenv("JWT_REFRESH_SECRET", "dev-refresh-secret-not-for-production"),
+		SecretsMasterKey: getenv("SECRETS_MASTER_KEY", "dev-secrets-master-key-not-for-production"),
 		AccessTokenTTL:   accessTTL,
 		RefreshTokenTTL:  refreshTTL,
 	}
@@ -56,6 +58,9 @@ func Load() (Config, error) {
 		}
 		if cfg.JWTRefreshSecret == "dev-refresh-secret-not-for-production" {
 			return Config{}, fmt.Errorf("JWT_REFRESH_SECRET is required outside development")
+		}
+		if cfg.SecretsMasterKey == "dev-secrets-master-key-not-for-production" {
+			return Config{}, fmt.Errorf("SECRETS_MASTER_KEY is required outside development")
 		}
 	}
 

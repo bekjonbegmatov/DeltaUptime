@@ -79,6 +79,7 @@ func runAPI(ctx context.Context, log *slog.Logger) error {
 		authService, err := auth.NewService(store, auth.Config{
 			AccessTokenSecret:  cfg.JWTAccessSecret,
 			RefreshTokenSecret: cfg.JWTRefreshSecret,
+			SecretsMasterKey:   cfg.SecretsMasterKey,
 			AccessTokenTTL:     cfg.AccessTokenTTL,
 			RefreshTokenTTL:    cfg.RefreshTokenTTL,
 		})

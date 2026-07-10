@@ -134,3 +134,30 @@ func (q *Queries) ListMembershipsByUser(ctx context.Context, userID pgtype.UUID)
 	}
 	return items, nil
 }
+
+const updateMembershipRole = `-- name: UpdateMembershipRole :one
+UPDATE memberships
+SET role = $3
+WHERE organization_id = $1
+  AND user_id = $2
+RETURNING id, organization_id, user_id, role, created_at
+`
+
+type UpdateMembershipRoleParams struct {
+	OrganizationID pgtype.UUID `json:"organization_id"`
+	UserID         pgtype.UUID `json:"user_id"`
+	Role           string      `json:"role"`
+}
+
+func (q *Queries) UpdateMembershipRole(ctx context.Context, arg UpdateMembershipRoleParams) (Membership, error) {
+	row := q.db.QueryRow(ctx, updateMembershipRole, arg.OrganizationID, arg.UserID, arg.Role)
+	var i Membership
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.UserID,
+		&i.Role,
+		&i.CreatedAt,
+	)
+	return i, err
+}

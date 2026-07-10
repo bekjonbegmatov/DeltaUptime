@@ -12,6 +12,53 @@ import (
 
 type fakeHandlerService struct{}
 
+func (fakeHandlerService) AddMembership(context.Context, Principal, string, MembershipCreateInput) (MembershipInfo, error) {
+	return MembershipInfo{}, nil
+}
+
+func (fakeHandlerService) AuthenticateAccessToken(context.Context, string) (Principal, error) {
+	return Principal{
+		Type: PrincipalTypeUser,
+		User: UserInfo{ID: "u1", Email: "user@example.com", DisplayName: "User"},
+	}, nil
+}
+
+func (fakeHandlerService) AuthenticateAPIKey(context.Context, string) (Principal, error) {
+	return Principal{}, nil
+}
+
+func (fakeHandlerService) CreateAPIKey(context.Context, Principal, string, APIKeyCreateInput) (APIKeyCreateResult, error) {
+	return APIKeyCreateResult{}, nil
+}
+
+func (fakeHandlerService) DisableTOTP(context.Context, Principal, string) (UserInfo, error) {
+	return UserInfo{}, nil
+}
+
+func (fakeHandlerService) EnableTOTP(context.Context, Principal, string) (UserInfo, error) {
+	return UserInfo{}, nil
+}
+
+func (fakeHandlerService) GetOrganization(context.Context, Principal, string) (OrganizationInfo, error) {
+	return OrganizationInfo{}, nil
+}
+
+func (fakeHandlerService) ListAPIKeys(context.Context, Principal, string) ([]APIKeyInfo, error) {
+	return nil, nil
+}
+
+func (fakeHandlerService) ListAuditLogs(context.Context, Principal, string, int32) ([]AuditLogInfo, error) {
+	return nil, nil
+}
+
+func (fakeHandlerService) ListMemberships(context.Context, Principal, string) ([]MembershipInfo, error) {
+	return nil, nil
+}
+
+func (fakeHandlerService) ListOrganizations(context.Context, Principal) ([]OrganizationInfo, error) {
+	return nil, nil
+}
+
 func (fakeHandlerService) Login(context.Context, LoginInput) (AuthResult, error) {
 	return AuthResult{
 		AccessToken: "access",
@@ -46,6 +93,18 @@ func (fakeHandlerService) Register(context.Context, RegisterInput) (AuthResult, 
 			Role: "owner",
 		}},
 	}, nil
+}
+
+func (fakeHandlerService) RevokeAPIKey(context.Context, Principal, string, string) (APIKeyInfo, error) {
+	return APIKeyInfo{}, nil
+}
+
+func (fakeHandlerService) SetupTOTP(context.Context, Principal) (TOTPSetup, error) {
+	return TOTPSetup{}, nil
+}
+
+func (fakeHandlerService) UpdateMembership(context.Context, Principal, string, MembershipUpdateInput) (MembershipInfo, error) {
+	return MembershipInfo{}, nil
 }
 
 func TestRegisterRoute(t *testing.T) {
