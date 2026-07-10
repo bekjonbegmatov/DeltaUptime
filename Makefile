@@ -3,8 +3,9 @@
 BIN      := bin/uptime-server
 PKG      := ./apps/control-plane/cmd/uptime-server
 COMPOSE  := docker compose -f deployments/docker-compose/docker-compose.yml
+SQLC     := ./.bin/sqlc
 
-.PHONY: help build test vet lint check run-api up down ps clean
+.PHONY: help build test vet lint check sqlc sqlc-verify run-api up down ps clean
 
 help: ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -24,6 +25,12 @@ lint: ## golangci-lint (если установлен)
 		echo "golangci-lint не установлен — пропущено"
 
 check: vet test ## Проверки перед коммитом (ЗЕЛЁНО обязательно)
+
+sqlc: ## Сгенерировать typed SQL-слой из sqlc-конфига
+	$(SQLC) generate
+
+sqlc-verify: ## Проверить SQL-запросы и схему через sqlc
+	$(SQLC) compile
 
 run-api: build ## Запустить HTTP API локально
 	$(BIN) api

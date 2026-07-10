@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-07-11 — sqlc-слой для users / organizations / memberships
+
+- **Фаза:** 0→1 — фундамент данных для мультитенантности
+- **Что сделано:**
+  - Добавлен `sqlc.yaml`, генерация настроена напрямую от `migrations/` и
+    `packages/database/queries/`.
+  - Описаны первые typed-запросы для `organizations`, `users`, `memberships`:
+    create/get/list под будущие auth и membership-flow.
+  - Сгенерирован пакет `packages/database/postgres` под `pgx/v5`.
+  - Добавлен `internal/database.Store` поверх `pgxpool` + `sqlc`-queries, чтобы
+    backend-модули подключали БД через один общий entrypoint.
+  - В `Makefile` добавлены `sqlc` и `sqlc-verify`; в `.gitignore` — локальные
+    `.bin/` и `.cache/` для toolchain внутри репозитория.
+- **Тесты (все зелёные):**
+  - `./.bin/sqlc compile`
+  - `go build ./...`
+  - `go test ./...`
+  - `golangci-lint run` через `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./...` → `0 issues`
+- **Коммит/PR:** ветка `feat/db-sqlc-multitenancy`.
+- **Дальше:** auth-модуль: Argon2id password hashing, регистрация/логин, JWT access +
+  rotating refresh поверх нового query-layer.
+
 ## 2026-07-11 — Миграции (Goose) + первая схема PostgreSQL
 
 - **Фаза:** 0→1 — Фундамент / мультитенантность

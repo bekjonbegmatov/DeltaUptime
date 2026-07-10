@@ -9,6 +9,8 @@ credentials.json
 
 # --- Go ---
 /bin/
+/.bin/
+/.cache/
 *.exe
 *.test
 *.out
