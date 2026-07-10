@@ -8,6 +8,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AuthRefreshToken struct {
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	TokenHash         string             `json:"token_hash"`
+	ExpiresAt         pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UsedAt            pgtype.Timestamptz `json:"used_at"`
+	RevokedAt         pgtype.Timestamptz `json:"revoked_at"`
+	ReplacedByTokenID pgtype.UUID        `json:"replaced_by_token_id"`
+}
+
 type Membership struct {
 	ID             pgtype.UUID        `json:"id"`
 	OrganizationID pgtype.UUID        `json:"organization_id"`

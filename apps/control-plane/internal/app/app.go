@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 
+	"deltauptime/apps/control-plane/internal/auth"
 	"deltauptime/apps/control-plane/internal/config"
 	"deltauptime/apps/control-plane/internal/database"
 	"deltauptime/apps/control-plane/internal/httpapi"
@@ -66,7 +67,30 @@ func runAPI(ctx context.Context, log *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+
 	srv := httpapi.NewServer(cfg.HTTPAddr, log)
+	if cfg.PostgresDSN != "" {
+		store, err := database.OpenStore(ctx, cfg.PostgresDSN)
+		if err != nil {
+			return fmt.Errorf("open store: %w", err)
+		}
+		defer store.Close()
+
+		authService, err := auth.NewService(store, auth.Config{
+			AccessTokenSecret:  cfg.JWTAccessSecret,
+			RefreshTokenSecret: cfg.JWTRefreshSecret,
+			AccessTokenTTL:     cfg.AccessTokenTTL,
+			RefreshTokenTTL:    cfg.RefreshTokenTTL,
+		})
+		if err != nil {
+			return fmt.Errorf("build auth service: %w", err)
+		}
+
+		srv = httpapi.NewServerWithAuth(cfg.HTTPAddr, log, auth.NewHandler(log, authService))
+	} else {
+		log.Warn("POSTGRES_DSN is empty: auth routes disabled, only health endpoints are served")
+	}
+
 	return httpapi.Serve(ctx, srv, log)
 }
 

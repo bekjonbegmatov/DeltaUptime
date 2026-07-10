@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-07-11 — Базовый auth: Argon2id + access JWT + rotating refresh
+
+- **Фаза:** 1 — Идентичность и мультитенантность
+- **Что сделано:**
+  - Добавлена миграция `00002_auth_refresh_tokens.sql` для хранения и ротации
+    refresh-сессий.
+  - В `sqlc` добавлены typed-запросы для `auth_refresh_tokens`; регенерирован
+    пакет `packages/database/postgres`.
+  - Реализован `internal/auth`: Argon2id hashing/verify, HMAC-hashed refresh
+    tokens, signed access JWT, rotation refresh token при `refresh`.
+  - Добавлены HTTP-роуты `POST /v1/auth/register`, `POST /v1/auth/login`,
+    `POST /v1/auth/refresh`, `GET /v1/auth/me`.
+  - Регистрация создаёт `user + organization + owner membership` в одной
+    транзакции; `api` подключает auth-модуль при наличии `POSTGRES_DSN`.
+  - `config` расширен TTL/secret-параметрами auth; `apps/control-plane/README.md`
+    обновлён под актуальный статус Control Plane.
+- **Тесты (все зелёные):**
+  - `./.bin/sqlc compile`
+  - `go build ./...`
+  - `go test ./...`
+  - `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./...` → `0 issues`
+- **Коммит/PR:** ветка `feat/auth-jwt-refresh`.
+- **Дальше:** TOTP / WebAuthn, затем разворачивать users / organizations /
+  memberships и permission-based RBAC поверх базового auth.
+
 ## 2026-07-11 — sqlc-слой для users / organizations / memberships
 
 - **Фаза:** 0→1 — фундамент данных для мультитенантности
