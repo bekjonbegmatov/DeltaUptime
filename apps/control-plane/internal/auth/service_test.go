@@ -2,10 +2,12 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -132,6 +134,130 @@ func TestServiceLoginRequiresTOTPWhenEnabled(t *testing.T) {
 	}
 }
 
+func TestServiceBeginWebAuthnRegistrationCreatesHandleAndSession(t *testing.T) {
+	repo := newFakeRepo()
+	service := newTestService(t, repo)
+
+	result, err := service.Register(context.Background(), RegisterInput{
+		Email:            "user@example.com",
+		Password:         "supersecret1",
+		DisplayName:      "User",
+		OrganizationName: "Acme",
+		OrganizationSlug: "acme",
+	})
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	principal, err := service.AuthenticateAccessToken(context.Background(), result.AccessToken)
+	if err != nil {
+		t.Fatalf("AuthenticateAccessToken: %v", err)
+	}
+
+	begin, err := service.BeginWebAuthnRegistration(context.Background(), principal)
+	if err != nil {
+		t.Fatalf("BeginWebAuthnRegistration: %v", err)
+	}
+	if begin.SessionID == "" || begin.Options == nil {
+		t.Fatalf("unexpected registration begin result: %+v", begin)
+	}
+
+	user := repo.usersByID[principal.User.ID]
+	if len(user.WebauthnUserHandle) == 0 {
+		t.Fatal("expected webauthn user handle to be persisted")
+	}
+	if len(repo.webauthnSessionsByID) != 1 {
+		t.Fatalf("expected one webauthn session, got %d", len(repo.webauthnSessionsByID))
+	}
+}
+
+func TestServiceBeginWebAuthnLoginRequiresRegisteredCredential(t *testing.T) {
+	repo := newFakeRepo()
+	service := newTestService(t, repo)
+
+	if _, err := service.Register(context.Background(), RegisterInput{
+		Email:            "user@example.com",
+		Password:         "supersecret1",
+		DisplayName:      "User",
+		OrganizationName: "Acme",
+		OrganizationSlug: "acme",
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	_, err := service.BeginWebAuthnLogin(context.Background(), "user@example.com")
+	if !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("BeginWebAuthnLogin error = %v, want ErrInvalidCredentials", err)
+	}
+}
+
+func TestServiceWebAuthnUserFromModelDecryptsCredentials(t *testing.T) {
+	repo := newFakeRepo()
+	service := newTestService(t, repo)
+
+	result, err := service.Register(context.Background(), RegisterInput{
+		Email:            "user@example.com",
+		Password:         "supersecret1",
+		DisplayName:      "User",
+		OrganizationName: "Acme",
+		OrganizationSlug: "acme",
+	})
+	if err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	principal, err := service.AuthenticateAccessToken(context.Background(), result.AccessToken)
+	if err != nil {
+		t.Fatalf("AuthenticateAccessToken: %v", err)
+	}
+
+	userID, err := parseUUID(principal.User.ID)
+	if err != nil {
+		t.Fatalf("parseUUID: %v", err)
+	}
+	user, err := repo.GetUserByID(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("GetUserByID: %v", err)
+	}
+	user, err = service.ensureWebAuthnUserHandle(context.Background(), repo, user)
+	if err != nil {
+		t.Fatalf("ensureWebAuthnUserHandle: %v", err)
+	}
+
+	rawCredential := webauthn.Credential{ID: []byte{1, 2, 3, 4}}
+	serialized, err := json.Marshal(rawCredential)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	ciphertext, nonce, err := service.secrets.Encrypt(serialized)
+	if err != nil {
+		t.Fatalf("Encrypt: %v", err)
+	}
+
+	if _, err := repo.CreateAuthWebAuthnCredential(context.Background(), postgres.CreateAuthWebAuthnCredentialParams{
+		UserID:               user.ID,
+		CredentialID:         rawCredential.ID,
+		CredentialCiphertext: ciphertext,
+		CredentialNonce:      nonce,
+	}); err != nil {
+		t.Fatalf("CreateAuthWebAuthnCredential: %v", err)
+	}
+
+	waUser, stored, err := service.webAuthnUserFromModel(context.Background(), repo, user)
+	if err != nil {
+		t.Fatalf("webAuthnUserFromModel: %v", err)
+	}
+	if len(waUser.WebAuthnCredentials()) != 1 {
+		t.Fatalf("expected one decrypted credential, got %d", len(waUser.WebAuthnCredentials()))
+	}
+	if got := waUser.WebAuthnCredentials()[0].ID; string(got) != string(rawCredential.ID) {
+		t.Fatalf("credential ID = %v, want %v", got, rawCredential.ID)
+	}
+	if len(stored) != 1 {
+		t.Fatalf("expected one stored credential mapping, got %d", len(stored))
+	}
+}
+
 func newTestService(t *testing.T, repo Repository) *Service {
 	t.Helper()
 
@@ -143,6 +269,10 @@ func newTestService(t *testing.T, repo Repository) *Service {
 	if err != nil {
 		t.Fatalf("NewSecretsManager: %v", err)
 	}
+	webAuthnManager, err := newWebAuthnManager("https://panel.example.com")
+	if err != nil {
+		t.Fatalf("newWebAuthnManager: %v", err)
+	}
 
 	return &Service{
 		repo:       repo,
@@ -150,40 +280,45 @@ func newTestService(t *testing.T, repo Repository) *Service {
 		tokens:     tokens,
 		secrets:    secrets,
 		totp:       NewTOTPManager("DeltaUptime"),
+		webauthn:   webAuthnManager,
 		timeNow:    time.Now,
 		totpIssuer: "DeltaUptime",
 	}
 }
 
 type fakeRepo struct {
-	usersByEmail   map[string]postgres.User
-	usersByID      map[string]postgres.User
-	orgsBySlug     map[string]postgres.Organization
-	orgsByUserID   map[string][]postgres.ListOrganizationsByUserRow
-	refreshByHash  map[string]postgres.AuthRefreshToken
-	refreshByID    map[string]string
-	apiKeysByID    map[string]postgres.ApiKey
-	apiKeysByOrg   map[string][]postgres.ApiKey
-	apiKeysByPref  map[string]postgres.ApiKey
-	totpByUserID   map[string]postgres.UserTotpCredential
-	auditLogsByOrg map[string][]postgres.AuditLog
-	memberships    []postgres.Membership
-	nextUUIDByte   byte
+	usersByEmail                map[string]postgres.User
+	usersByID                   map[string]postgres.User
+	orgsBySlug                  map[string]postgres.Organization
+	orgsByUserID                map[string][]postgres.ListOrganizationsByUserRow
+	refreshByHash               map[string]postgres.AuthRefreshToken
+	refreshByID                 map[string]string
+	apiKeysByID                 map[string]postgres.ApiKey
+	apiKeysByOrg                map[string][]postgres.ApiKey
+	apiKeysByPref               map[string]postgres.ApiKey
+	totpByUserID                map[string]postgres.UserTotpCredential
+	webauthnSessionsByID        map[string]postgres.AuthWebauthnSession
+	webauthnCredentialsByUserID map[string][]postgres.AuthWebauthnCredential
+	auditLogsByOrg              map[string][]postgres.AuditLog
+	memberships                 []postgres.Membership
+	nextUUIDByte                byte
 }
 
 func newFakeRepo() *fakeRepo {
 	return &fakeRepo{
-		usersByEmail:   map[string]postgres.User{},
-		usersByID:      map[string]postgres.User{},
-		orgsBySlug:     map[string]postgres.Organization{},
-		orgsByUserID:   map[string][]postgres.ListOrganizationsByUserRow{},
-		refreshByHash:  map[string]postgres.AuthRefreshToken{},
-		refreshByID:    map[string]string{},
-		apiKeysByID:    map[string]postgres.ApiKey{},
-		apiKeysByOrg:   map[string][]postgres.ApiKey{},
-		apiKeysByPref:  map[string]postgres.ApiKey{},
-		totpByUserID:   map[string]postgres.UserTotpCredential{},
-		auditLogsByOrg: map[string][]postgres.AuditLog{},
+		usersByEmail:                map[string]postgres.User{},
+		usersByID:                   map[string]postgres.User{},
+		orgsBySlug:                  map[string]postgres.Organization{},
+		orgsByUserID:                map[string][]postgres.ListOrganizationsByUserRow{},
+		refreshByHash:               map[string]postgres.AuthRefreshToken{},
+		refreshByID:                 map[string]string{},
+		apiKeysByID:                 map[string]postgres.ApiKey{},
+		apiKeysByOrg:                map[string][]postgres.ApiKey{},
+		apiKeysByPref:               map[string]postgres.ApiKey{},
+		totpByUserID:                map[string]postgres.UserTotpCredential{},
+		webauthnSessionsByID:        map[string]postgres.AuthWebauthnSession{},
+		webauthnCredentialsByUserID: map[string][]postgres.AuthWebauthnCredential{},
+		auditLogsByOrg:              map[string][]postgres.AuditLog{},
 	}
 }
 
@@ -235,6 +370,32 @@ func (r *fakeRepo) CreateAuthRefreshToken(_ context.Context, arg postgres.Create
 	}
 	r.refreshByHash[arg.TokenHash] = session
 	r.refreshByID[session.ID.String()] = arg.TokenHash
+	return session, nil
+}
+
+func (r *fakeRepo) CreateAuthWebAuthnCredential(_ context.Context, arg postgres.CreateAuthWebAuthnCredentialParams) (postgres.AuthWebauthnCredential, error) {
+	credential := postgres.AuthWebauthnCredential{
+		ID:                   r.newUUID(),
+		UserID:               arg.UserID,
+		CredentialID:         append([]byte(nil), arg.CredentialID...),
+		CredentialCiphertext: append([]byte(nil), arg.CredentialCiphertext...),
+		CredentialNonce:      append([]byte(nil), arg.CredentialNonce...),
+		CreatedAt:            pgtype.Timestamptz{Time: time.Now(), Valid: true},
+	}
+	r.webauthnCredentialsByUserID[arg.UserID.String()] = append(r.webauthnCredentialsByUserID[arg.UserID.String()], credential)
+	return credential, nil
+}
+
+func (r *fakeRepo) CreateAuthWebAuthnSession(_ context.Context, arg postgres.CreateAuthWebAuthnSessionParams) (postgres.AuthWebauthnSession, error) {
+	session := postgres.AuthWebauthnSession{
+		ID:          r.newUUID(),
+		UserID:      arg.UserID,
+		Flow:        arg.Flow,
+		SessionData: append([]byte(nil), arg.SessionData...),
+		ExpiresAt:   arg.ExpiresAt,
+		CreatedAt:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+	}
+	r.webauthnSessionsByID[session.ID.String()] = session
 	return session, nil
 }
 
@@ -309,6 +470,14 @@ func (r *fakeRepo) GetAuthRefreshTokenByTokenHash(_ context.Context, tokenHash s
 	return session, nil
 }
 
+func (r *fakeRepo) GetAuthWebAuthnSessionByID(_ context.Context, id pgtype.UUID) (postgres.AuthWebauthnSession, error) {
+	session, ok := r.webauthnSessionsByID[id.String()]
+	if !ok {
+		return postgres.AuthWebauthnSession{}, pgx.ErrNoRows
+	}
+	return session, nil
+}
+
 func (r *fakeRepo) GetMembership(_ context.Context, arg postgres.GetMembershipParams) (postgres.Membership, error) {
 	for _, membership := range r.memberships {
 		if membership.OrganizationID == arg.OrganizationID && membership.UserID == arg.UserID {
@@ -367,6 +536,10 @@ func (r *fakeRepo) ListAuditLogsByOrganization(_ context.Context, arg postgres.L
 	return append([]postgres.AuditLog(nil), r.auditLogsByOrg[arg.OrganizationID.String()]...), nil
 }
 
+func (r *fakeRepo) ListAuthWebAuthnCredentialsByUserID(_ context.Context, userID pgtype.UUID) ([]postgres.AuthWebauthnCredential, error) {
+	return append([]postgres.AuthWebauthnCredential(nil), r.webauthnCredentialsByUserID[userID.String()]...), nil
+}
+
 func (r *fakeRepo) ListOrganizationsByUser(_ context.Context, userID pgtype.UUID) ([]postgres.ListOrganizationsByUserRow, error) {
 	return append([]postgres.ListOrganizationsByUserRow(nil), r.orgsByUserID[userID.String()]...), nil
 }
@@ -379,14 +552,15 @@ func (r *fakeRepo) ListUsersByOrganization(_ context.Context, organizationID pgt
 		}
 		user := r.usersByID[membership.UserID.String()]
 		rows = append(rows, postgres.ListUsersByOrganizationRow{
-			ID:            user.ID,
-			Email:         user.Email,
-			PasswordHash:  user.PasswordHash,
-			DisplayName:   user.DisplayName,
-			IsSystemAdmin: user.IsSystemAdmin,
-			CreatedAt:     user.CreatedAt,
-			UpdatedAt:     user.UpdatedAt,
-			Role:          membership.Role,
+			ID:                 user.ID,
+			Email:              user.Email,
+			PasswordHash:       user.PasswordHash,
+			DisplayName:        user.DisplayName,
+			IsSystemAdmin:      user.IsSystemAdmin,
+			CreatedAt:          user.CreatedAt,
+			UpdatedAt:          user.UpdatedAt,
+			WebauthnUserHandle: append([]byte(nil), user.WebauthnUserHandle...),
+			Role:               membership.Role,
 		})
 	}
 	return rows, nil
@@ -427,6 +601,35 @@ func (r *fakeRepo) TouchAPIKeyLastUsed(_ context.Context, id pgtype.UUID) (postg
 	return key, nil
 }
 
+func (r *fakeRepo) SetUserWebAuthnHandle(_ context.Context, arg postgres.SetUserWebAuthnHandleParams) (postgres.User, error) {
+	user, ok := r.usersByID[arg.ID.String()]
+	if !ok {
+		return postgres.User{}, pgx.ErrNoRows
+	}
+	user.WebauthnUserHandle = append([]byte(nil), arg.WebauthnUserHandle...)
+	user.UpdatedAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	r.usersByID[arg.ID.String()] = user
+	r.usersByEmail[user.Email] = user
+	return user, nil
+}
+
+func (r *fakeRepo) UpdateAuthWebAuthnCredential(_ context.Context, arg postgres.UpdateAuthWebAuthnCredentialParams) (postgres.AuthWebauthnCredential, error) {
+	for userID, credentials := range r.webauthnCredentialsByUserID {
+		for i, credential := range credentials {
+			if credential.ID != arg.ID {
+				continue
+			}
+			credential.CredentialCiphertext = append([]byte(nil), arg.CredentialCiphertext...)
+			credential.CredentialNonce = append([]byte(nil), arg.CredentialNonce...)
+			credential.LastUsedAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
+			credentials[i] = credential
+			r.webauthnCredentialsByUserID[userID] = credentials
+			return credential, nil
+		}
+	}
+	return postgres.AuthWebauthnCredential{}, pgx.ErrNoRows
+}
+
 func (r *fakeRepo) UpdateMembershipRole(_ context.Context, arg postgres.UpdateMembershipRoleParams) (postgres.Membership, error) {
 	for i, membership := range r.memberships {
 		if membership.OrganizationID == arg.OrganizationID && membership.UserID == arg.UserID {
@@ -465,6 +668,11 @@ func (r *fakeRepo) EnableUserTOTPCredential(_ context.Context, userID pgtype.UUI
 	credential.UpdatedAt = pgtype.Timestamptz{Time: time.Now(), Valid: true}
 	r.totpByUserID[userID.String()] = credential
 	return credential, nil
+}
+
+func (r *fakeRepo) DeleteAuthWebAuthnSession(_ context.Context, id pgtype.UUID) error {
+	delete(r.webauthnSessionsByID, id.String())
+	return nil
 }
 
 func (r *fakeRepo) GetAPIKeyByID(_ context.Context, id pgtype.UUID) (postgres.ApiKey, error) {

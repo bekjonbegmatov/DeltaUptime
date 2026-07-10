@@ -27,6 +27,14 @@ func (fakeHandlerService) AuthenticateAPIKey(context.Context, string) (Principal
 	return Principal{}, nil
 }
 
+func (fakeHandlerService) BeginWebAuthnLogin(context.Context, string) (WebAuthnLoginBeginResult, error) {
+	return WebAuthnLoginBeginResult{}, nil
+}
+
+func (fakeHandlerService) BeginWebAuthnRegistration(context.Context, Principal) (WebAuthnRegistrationBeginResult, error) {
+	return WebAuthnRegistrationBeginResult{}, nil
+}
+
 func (fakeHandlerService) CreateAPIKey(context.Context, Principal, string, APIKeyCreateInput) (APIKeyCreateResult, error) {
 	return APIKeyCreateResult{}, nil
 }
@@ -37,6 +45,14 @@ func (fakeHandlerService) DisableTOTP(context.Context, Principal, string) (UserI
 
 func (fakeHandlerService) EnableTOTP(context.Context, Principal, string) (UserInfo, error) {
 	return UserInfo{}, nil
+}
+
+func (fakeHandlerService) FinishWebAuthnLogin(context.Context, WebAuthnFinishInput) (AuthResult, error) {
+	return AuthResult{}, nil
+}
+
+func (fakeHandlerService) FinishWebAuthnRegistration(context.Context, Principal, WebAuthnFinishInput) (WebAuthnCredentialInfo, error) {
+	return WebAuthnCredentialInfo{}, nil
 }
 
 func (fakeHandlerService) GetOrganization(context.Context, Principal, string) (OrganizationInfo, error) {

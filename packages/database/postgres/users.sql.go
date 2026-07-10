@@ -23,7 +23,7 @@ INSERT INTO users (
     $3,
     $4
 )
-RETURNING id, email, password_hash, display_name, is_system_admin, created_at, updated_at
+RETURNING id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle
 `
 
 type CreateUserParams struct {
@@ -49,12 +49,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnUserHandle,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at
+SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle
 FROM users
 WHERE email = $1
 LIMIT 1
@@ -71,12 +72,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnUserHandle,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at
+SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle
 FROM users
 WHERE id = $1
 LIMIT 1
@@ -93,6 +95,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.IsSystemAdmin,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WebauthnUserHandle,
 	)
 	return i, err
 }
@@ -106,6 +109,7 @@ SELECT
     u.is_system_admin,
     u.created_at,
     u.updated_at,
+    u.webauthn_user_handle,
     m.role
 FROM users AS u
 JOIN memberships AS m
@@ -115,14 +119,15 @@ ORDER BY u.created_at ASC, u.id ASC
 `
 
 type ListUsersByOrganizationRow struct {
-	ID            pgtype.UUID        `json:"id"`
-	Email         string             `json:"email"`
-	PasswordHash  string             `json:"password_hash"`
-	DisplayName   string             `json:"display_name"`
-	IsSystemAdmin bool               `json:"is_system_admin"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	Role          string             `json:"role"`
+	ID                 pgtype.UUID        `json:"id"`
+	Email              string             `json:"email"`
+	PasswordHash       string             `json:"password_hash"`
+	DisplayName        string             `json:"display_name"`
+	IsSystemAdmin      bool               `json:"is_system_admin"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	WebauthnUserHandle []byte             `json:"webauthn_user_handle"`
+	Role               string             `json:"role"`
 }
 
 func (q *Queries) ListUsersByOrganization(ctx context.Context, organizationID pgtype.UUID) ([]ListUsersByOrganizationRow, error) {
@@ -142,6 +147,7 @@ func (q *Queries) ListUsersByOrganization(ctx context.Context, organizationID pg
 			&i.IsSystemAdmin,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.WebauthnUserHandle,
 			&i.Role,
 		); err != nil {
 			return nil, err
@@ -152,4 +158,33 @@ func (q *Queries) ListUsersByOrganization(ctx context.Context, organizationID pg
 		return nil, err
 	}
 	return items, nil
+}
+
+const setUserWebAuthnHandle = `-- name: SetUserWebAuthnHandle :one
+UPDATE users
+SET webauthn_user_handle = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle
+`
+
+type SetUserWebAuthnHandleParams struct {
+	ID                 pgtype.UUID `json:"id"`
+	WebauthnUserHandle []byte      `json:"webauthn_user_handle"`
+}
+
+func (q *Queries) SetUserWebAuthnHandle(ctx context.Context, arg SetUserWebAuthnHandleParams) (User, error) {
+	row := q.db.QueryRow(ctx, setUserWebAuthnHandle, arg.ID, arg.WebauthnUserHandle)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.DisplayName,
+		&i.IsSystemAdmin,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.WebauthnUserHandle,
+	)
+	return i, err
 }

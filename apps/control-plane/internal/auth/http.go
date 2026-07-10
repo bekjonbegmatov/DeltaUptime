@@ -15,9 +15,13 @@ type HandlerService interface {
 	AddMembership(ctx context.Context, principal Principal, slug string, input MembershipCreateInput) (MembershipInfo, error)
 	AuthenticateAccessToken(ctx context.Context, accessToken string) (Principal, error)
 	AuthenticateAPIKey(ctx context.Context, rawAPIKey string) (Principal, error)
+	BeginWebAuthnLogin(ctx context.Context, email string) (WebAuthnLoginBeginResult, error)
+	BeginWebAuthnRegistration(ctx context.Context, principal Principal) (WebAuthnRegistrationBeginResult, error)
 	CreateAPIKey(ctx context.Context, principal Principal, slug string, input APIKeyCreateInput) (APIKeyCreateResult, error)
 	DisableTOTP(ctx context.Context, principal Principal, code string) (UserInfo, error)
 	EnableTOTP(ctx context.Context, principal Principal, code string) (UserInfo, error)
+	FinishWebAuthnLogin(ctx context.Context, input WebAuthnFinishInput) (AuthResult, error)
+	FinishWebAuthnRegistration(ctx context.Context, principal Principal, input WebAuthnFinishInput) (WebAuthnCredentialInfo, error)
 	GetOrganization(ctx context.Context, principal Principal, slug string) (OrganizationInfo, error)
 	ListAPIKeys(ctx context.Context, principal Principal, slug string) ([]APIKeyInfo, error)
 	ListAuditLogs(ctx context.Context, principal Principal, slug string, limit int32) ([]AuditLogInfo, error)
@@ -51,6 +55,10 @@ func NewHandler(log *slog.Logger, service HandlerService) http.Handler {
 	mux.HandleFunc("POST /v1/auth/totp/setup", h.handleTOTPSetup)
 	mux.HandleFunc("POST /v1/auth/totp/enable", h.handleTOTPEnable)
 	mux.HandleFunc("POST /v1/auth/totp/disable", h.handleTOTPDisable)
+	mux.HandleFunc("POST /v1/auth/webauthn/register/begin", h.handleWebAuthnRegisterBegin)
+	mux.HandleFunc("POST /v1/auth/webauthn/register/finish", h.handleWebAuthnRegisterFinish)
+	mux.HandleFunc("POST /v1/auth/webauthn/login/begin", h.handleWebAuthnLoginBegin)
+	mux.HandleFunc("POST /v1/auth/webauthn/login/finish", h.handleWebAuthnLoginFinish)
 	mux.HandleFunc("GET /v1/organizations", h.handleOrganizations)
 	mux.HandleFunc("GET /v1/organizations/{slug}", h.handleOrganization)
 	mux.HandleFunc("GET /v1/organizations/{slug}/memberships", h.handleListMemberships)
@@ -83,6 +91,15 @@ type refreshRequest struct {
 
 type totpCodeRequest struct {
 	Code string `json:"code"`
+}
+
+type webAuthnLoginBeginRequest struct {
+	Email string `json:"email"`
+}
+
+type webAuthnFinishRequest struct {
+	SessionID  string          `json:"session_id"`
+	Credential json.RawMessage `json:"credential"`
 }
 
 type membershipCreateRequest struct {
@@ -225,6 +242,76 @@ func (h *Handler) handleTOTPDisable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, user)
+}
+
+func (h *Handler) handleWebAuthnRegisterBegin(w http.ResponseWriter, r *http.Request) {
+	principal, err := h.authenticateUser(r)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	result, err := h.service.BeginWebAuthnRegistration(r.Context(), principal)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *Handler) handleWebAuthnRegisterFinish(w http.ResponseWriter, r *http.Request) {
+	principal, err := h.authenticateUser(r)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	var req webAuthnFinishRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	result, err := h.service.FinishWebAuthnRegistration(r.Context(), principal, WebAuthnFinishInput(req))
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, result)
+}
+
+func (h *Handler) handleWebAuthnLoginBegin(w http.ResponseWriter, r *http.Request) {
+	var req webAuthnLoginBeginRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	result, err := h.service.BeginWebAuthnLogin(r.Context(), req.Email)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *Handler) handleWebAuthnLoginFinish(w http.ResponseWriter, r *http.Request) {
+	var req webAuthnFinishRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	result, err := h.service.FinishWebAuthnLogin(r.Context(), WebAuthnFinishInput(req))
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *Handler) handleOrganizations(w http.ResponseWriter, r *http.Request) {

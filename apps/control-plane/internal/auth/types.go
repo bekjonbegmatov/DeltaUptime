@@ -3,6 +3,8 @@ package auth
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/go-webauthn/webauthn/protocol"
 )
 
 type PrincipalType string
@@ -23,6 +25,27 @@ type Principal struct {
 type TOTPSetup struct {
 	Secret     string `json:"secret"`
 	OTPAuthURL string `json:"otpauth_url"`
+}
+
+type WebAuthnRegistrationBeginResult struct {
+	SessionID string                       `json:"session_id"`
+	Options   *protocol.CredentialCreation `json:"options"`
+}
+
+type WebAuthnLoginBeginResult struct {
+	SessionID string                        `json:"session_id"`
+	Options   *protocol.CredentialAssertion `json:"options"`
+}
+
+type WebAuthnFinishInput struct {
+	SessionID  string          `json:"session_id"`
+	Credential json.RawMessage `json:"credential"`
+}
+
+type WebAuthnCredentialInfo struct {
+	ID         string    `json:"id"`
+	CreatedAt  time.Time `json:"created_at"`
+	LastUsedAt time.Time `json:"last_used_at,omitempty"`
 }
 
 type APIKeyInfo struct {

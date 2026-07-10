@@ -10,19 +10,26 @@ INSERT INTO users (
     $3,
     $4
 )
-RETURNING id, email, password_hash, display_name, is_system_admin, created_at, updated_at;
+RETURNING id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle;
 
 -- name: GetUserByID :one
-SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at
+SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle
 FROM users
 WHERE id = $1
 LIMIT 1;
 
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at
+SELECT id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle
 FROM users
 WHERE email = $1
 LIMIT 1;
+
+-- name: SetUserWebAuthnHandle :one
+UPDATE users
+SET webauthn_user_handle = $2,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, email, password_hash, display_name, is_system_admin, created_at, updated_at, webauthn_user_handle;
 
 -- name: ListUsersByOrganization :many
 SELECT
@@ -33,6 +40,7 @@ SELECT
     u.is_system_admin,
     u.created_at,
     u.updated_at,
+    u.webauthn_user_handle,
     m.role
 FROM users AS u
 JOIN memberships AS m

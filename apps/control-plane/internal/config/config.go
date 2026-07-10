@@ -12,6 +12,7 @@ import (
 type Config struct {
 	AppEnv           string        // APP_ENV
 	HTTPAddr         string        // HTTP_ADDR
+	PublicPanelURL   string        // PUBLIC_PANEL_URL
 	PostgresDSN      string        // POSTGRES_DSN
 	RedisURL         string        // REDIS_URL
 	NATSURL          string        // NATS_URL
@@ -41,6 +42,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		AppEnv:           appEnv,
 		HTTPAddr:         getenv("HTTP_ADDR", ":8080"),
+		PublicPanelURL:   getenv("PUBLIC_PANEL_URL", "https://panel.localhost"),
 		PostgresDSN:      os.Getenv("POSTGRES_DSN"),
 		RedisURL:         os.Getenv("REDIS_URL"),
 		NATSURL:          os.Getenv("NATS_URL"),
@@ -61,6 +63,9 @@ func Load() (Config, error) {
 		}
 		if cfg.SecretsMasterKey == "dev-secrets-master-key-not-for-production" {
 			return Config{}, fmt.Errorf("SECRETS_MASTER_KEY is required outside development")
+		}
+		if cfg.PublicPanelURL == "https://panel.localhost" {
+			return Config{}, fmt.Errorf("PUBLIC_PANEL_URL is required outside development")
 		}
 	}
 

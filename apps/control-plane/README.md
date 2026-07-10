@@ -13,7 +13,7 @@ control-plane/
 ├── cmd/uptime-server/       # main: подхват сигналов + dispatch
 └── internal/
     ├── app/                 # разбор подкоманд (тестируемо, не в main)
-    ├── auth/                # JWT/TOTP/api-keys/RBAC/audit для identity-фазы
+    ├── auth/                # JWT/TOTP/WebAuthn/api-keys/RBAC/audit для identity-фазы
     ├── config/              # загрузка конфигурации из env
     └── httpapi/             # HTTP-сервер: /healthz, /readyz, graceful shutdown
 ```
@@ -33,6 +33,8 @@ make check                               # go vet + go test (перед комм
 
 - `/v1/auth/register|login|refresh|me`
 - `/v1/auth/totp/setup|enable|disable`
+- `/v1/auth/webauthn/register/begin|finish`
+- `/v1/auth/webauthn/login/begin|finish`
 - `/v1/organizations/...` для membership/API-key/audit управления
 
 `scheduler` и `worker` пока остаются заглушками. См. [../../ROADMAP.md](../../ROADMAP.md)

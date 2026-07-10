@@ -7,7 +7,7 @@ import (
 
 func TestLoad_Defaults(t *testing.T) {
 	// Ensure a clean environment for the keys we care about.
-	for _, k := range []string{"APP_ENV", "HTTP_ADDR", "LOG_LEVEL", "POSTGRES_DSN", "ACCESS_TOKEN_TTL", "REFRESH_TOKEN_TTL"} {
+	for _, k := range []string{"APP_ENV", "HTTP_ADDR", "PUBLIC_PANEL_URL", "LOG_LEVEL", "POSTGRES_DSN", "ACCESS_TOKEN_TTL", "REFRESH_TOKEN_TTL"} {
 		t.Setenv(k, "")
 	}
 
@@ -20,6 +20,9 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 	if cfg.HTTPAddr != ":8080" {
 		t.Errorf("HTTPAddr = %q, want :8080", cfg.HTTPAddr)
+	}
+	if cfg.PublicPanelURL != "https://panel.localhost" {
+		t.Errorf("PublicPanelURL = %q, want https://panel.localhost", cfg.PublicPanelURL)
 	}
 	if cfg.LogLevel != "info" {
 		t.Errorf("LogLevel = %q, want info", cfg.LogLevel)
@@ -35,6 +38,7 @@ func TestLoad_Defaults(t *testing.T) {
 func TestLoad_Overrides(t *testing.T) {
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("HTTP_ADDR", ":9000")
+	t.Setenv("PUBLIC_PANEL_URL", "https://panel.example.com")
 	t.Setenv("POSTGRES_DSN", "postgres://x")
 	t.Setenv("JWT_ACCESS_SECRET", "access")
 	t.Setenv("JWT_REFRESH_SECRET", "refresh")
@@ -55,6 +59,9 @@ func TestLoad_Overrides(t *testing.T) {
 	if cfg.PostgresDSN != "postgres://x" {
 		t.Errorf("PostgresDSN = %q, want postgres://x", cfg.PostgresDSN)
 	}
+	if cfg.PublicPanelURL != "https://panel.example.com" {
+		t.Errorf("PublicPanelURL = %q, want https://panel.example.com", cfg.PublicPanelURL)
+	}
 	if cfg.AccessTokenTTL != 30*time.Minute {
 		t.Errorf("AccessTokenTTL = %s, want 30m", cfg.AccessTokenTTL)
 	}
@@ -68,5 +75,17 @@ func TestLoad_InvalidDuration(t *testing.T) {
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error for invalid ACCESS_TOKEN_TTL")
+	}
+}
+
+func TestLoad_RequiresPublicPanelURLOutsideDevelopment(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("JWT_ACCESS_SECRET", "access")
+	t.Setenv("JWT_REFRESH_SECRET", "refresh")
+	t.Setenv("SECRETS_MASTER_KEY", "secret-master-key")
+	t.Setenv("PUBLIC_PANEL_URL", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for missing PUBLIC_PANEL_URL in production")
 	}
 }

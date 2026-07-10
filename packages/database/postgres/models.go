@@ -45,6 +45,25 @@ type AuthRefreshToken struct {
 	ReplacedByTokenID pgtype.UUID        `json:"replaced_by_token_id"`
 }
 
+type AuthWebauthnCredential struct {
+	ID                   pgtype.UUID        `json:"id"`
+	UserID               pgtype.UUID        `json:"user_id"`
+	CredentialID         []byte             `json:"credential_id"`
+	CredentialCiphertext []byte             `json:"credential_ciphertext"`
+	CredentialNonce      []byte             `json:"credential_nonce"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	LastUsedAt           pgtype.Timestamptz `json:"last_used_at"`
+}
+
+type AuthWebauthnSession struct {
+	ID          pgtype.UUID        `json:"id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Flow        string             `json:"flow"`
+	SessionData []byte             `json:"session_data"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 type Membership struct {
 	ID             pgtype.UUID        `json:"id"`
 	OrganizationID pgtype.UUID        `json:"organization_id"`
@@ -62,13 +81,14 @@ type Organization struct {
 }
 
 type User struct {
-	ID            pgtype.UUID        `json:"id"`
-	Email         string             `json:"email"`
-	PasswordHash  string             `json:"password_hash"`
-	DisplayName   string             `json:"display_name"`
-	IsSystemAdmin bool               `json:"is_system_admin"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID                 pgtype.UUID        `json:"id"`
+	Email              string             `json:"email"`
+	PasswordHash       string             `json:"password_hash"`
+	DisplayName        string             `json:"display_name"`
+	IsSystemAdmin      bool               `json:"is_system_admin"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	WebauthnUserHandle []byte             `json:"webauthn_user_handle"`
 }
 
 type UserTotpCredential struct {
