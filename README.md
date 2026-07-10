@@ -91,14 +91,19 @@ uptime-server worker      # incident + notification workers
 | Frontend (status) | Отдельный Next.js-проект, SSR + CDN caching |
 | Probe-агент | Go (один статический бинарь) |
 | Источник истины | PostgreSQL |
-| Метрики проверок | ClickHouse |
+| Метрики проверок | PostgreSQL на старте → **ClickHouse при росте** (поздняя стадия) |
 | Message broker | NATS JetStream |
 | Cache / locks | Redis |
 | Realtime | SSE |
 | Auth | Argon2id + JWT access + rotating refresh + TOTP/WebAuthn |
-| Observability | OpenTelemetry + Prometheus + Grafana + Loki + Tempo |
-| Deploy | Docker Compose → Kubernetes при росте |
+| Observability | structured logs + OpenTelemetry-ready; **Prometheus + Grafana — поздняя стадия** |
+| Deploy | **Docker / Docker Compose** (Kubernetes не используем) |
 | CI/CD | GitHub Actions |
+
+> **Стадийность инфраструктуры.** Базовый стек намеренно минимален: PostgreSQL +
+> Redis + NATS в Docker Compose. **ClickHouse, Prometheus и Grafana — поздняя
+> стадия** (вводятся, когда объём метрик и потребность в дашбордах реально
+> вырастут). **Kubernetes в проекте не используется** — только Docker.
 
 Подробнее по выбору стека и библиотек: [docs/architecture.md](docs/architecture.md).
 
@@ -144,7 +149,7 @@ DeltaUptime/
 Требования: Docker + Docker Compose, Go 1.23+, Node 20+.
 
 ```bash
-# 1. Поднять инфраструктуру (postgres, clickhouse, redis, nats, grafana…)
+# 1. Поднять базовую инфраструктуру (postgres, redis, nats)
 cd deployments/docker-compose
 docker compose up -d
 
@@ -176,7 +181,7 @@ cd apps/panel-web && npm install && npm run dev
 | Status Pages | Публичные страницы + конструктор | [docs/status-pages.md](docs/status-pages.md) |
 | Мониторы | Типы проверок и метрики | [docs/monitors.md](docs/monitors.md) |
 | Безопасность | SSRF, RBAC, anti-abuse | [docs/security.md](docs/security.md) |
-| Данные | PostgreSQL + ClickHouse + Redis + NATS | [docs/database.md](docs/database.md) |
+| Данные | PostgreSQL + Redis + NATS (ClickHouse — поздняя стадия) | [docs/database.md](docs/database.md) |
 
 ---
 

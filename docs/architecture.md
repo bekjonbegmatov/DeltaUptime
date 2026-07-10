@@ -66,16 +66,21 @@ apps/status-web  → status.domain.com  (публичные status pages, SSR + 
 
 ## Масштабирование
 
-- **Старт:** 1×(CP, PostgreSQL, ClickHouse, Redis, NATS), 50–100 агентов.
+- **Старт:** 1×(CP, PostgreSQL, Redis, NATS) в Docker Compose, 50–100 агентов.
+  Метрики проверок — в PostgreSQL.
 - **Средний:** 2–3 API, 2 scheduler, несколько workers, PG primary+replica,
-  ClickHouse cluster, NATS cluster.
+  NATS cluster.
 - **Большой:** региональные ingress, agent gateway, отдельные scheduler/incident/
-  notification сервисы, PostgreSQL HA.
+  notification сервисы, PostgreSQL HA, метрики переезжают в **ClickHouse cluster**.
 
-Для 50 агентов Kubernetes не обязателен — начинаем с Docker Compose.
+**Kubernetes в проекте не используется.** Масштабирование — через Docker
+(несколько хостов, compose-профили). Оркестратор не вводим.
 
 ## Наблюдаемость самой платформы
 
-Prometheus + Grafana + Loki + Tempo + OpenTelemetry. Ключевая метрика —
-`scheduler_lag_seconds` (насколько проверка запустилась позже запланированного).
-Полный список метрик — в [ROADMAP.md](../ROADMAP.md), фаза 7.
+**На старте** — structured logging (slog) и OpenTelemetry-ready интерфейсы; смотрим
+логи и базовые счётчики. **Prometheus + Grafana (+ Loki/Tempo) — поздняя стадия**
+(фаза 7): полноценные дашборды и алерты на саму платформу вводятся только тогда.
+
+Ключевая метрика — `scheduler_lag_seconds` (насколько проверка запустилась позже
+запланированного). Полный список метрик — в [ROADMAP.md](../ROADMAP.md), фаза 7.

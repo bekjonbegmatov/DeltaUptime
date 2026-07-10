@@ -11,10 +11,11 @@ probe-агенты, регионы и инциденты).
 ## Фаза 0 — Фундамент (инфраструктура и скелет)
 
 - [ ] Структура монорепозитория и документация
-- [ ] Docker Compose стек (postgres, clickhouse, redis, nats, prometheus, grafana)
+- [ ] Docker Compose стек — **только базовое:** postgres, redis, nats
+      (ClickHouse/Prometheus/Grafana НЕ здесь — поздняя стадия)
 - [ ] Каркас Go-бинаря `uptime-server` с подкомандами (api/scheduler/worker/migrate)
 - [ ] Миграции (Goose) + sqlc-конфиг
-- [ ] Базовый OTel/logging/metrics в `packages/observability`
+- [ ] Structured logging (slog), OpenTelemetry-ready интерфейсы в `packages/observability`
 - [ ] CI (GitHub Actions): build + test + lint
 
 ## Фаза 1 — Идентичность и мультитенантность
@@ -43,7 +44,7 @@ probe-агенты, регионы и инциденты).
 - [ ] DNS монитор
 - [ ] TLS certificate монитор (предупреждения за 30/14/7/3 дня)
 - [ ] Распределённые проверки + кворум-определение DOWN
-- [ ] Запись метрик в ClickHouse
+- [ ] Запись метрик проверок в **PostgreSQL** (ClickHouse — поздняя стадия, фаза 8)
 - [ ] Maintenance windows
 
 ## Фаза 4 — Инциденты и уведомления
@@ -73,17 +74,20 @@ probe-агенты, регионы и инциденты).
 - [ ] White-label + собственные домены
 - [ ] Отдача из кэша при недоступности основной панели
 
-## Фаза 7 — Системная админка и наблюдаемость
+## Фаза 7 — Системная админка и наблюдаемость (поздняя стадия)
 
 - [ ] System Admin Panel (все орги, лимиты, нагрузка агентов, очереди)
 - [ ] Метрики платформы (scheduler_lag_seconds, lost checks, queue depth…)
-- [ ] Grafana-дашборды + алерты на саму платформу
+- [ ] **Prometheus + Grafana** — дашборды и алерты на саму платформу
+      (вводятся только на этой стадии, не раньше)
 
 ## Фаза 8 — Масштабирование (по необходимости)
 
 - [ ] Вынос scheduler/incident/notification в отдельные сервисы
+- [ ] Миграция метрик проверок на **ClickHouse** (когда объём перерастёт PostgreSQL)
 - [ ] PostgreSQL HA + replica, ClickHouse cluster, NATS cluster
-- [ ] Kubernetes-манифесты, rolling updates, autoscaling
+- [ ] Масштабирование через **Docker** (несколько хостов / compose-профили).
+      Kubernetes в проекте **не используется**.
 
 ---
 

@@ -1,6 +1,10 @@
-# Данные: PostgreSQL, ClickHouse, Redis, NATS
+# Данные: PostgreSQL, Redis, NATS (+ ClickHouse на поздней стадии)
 
 Нельзя использовать одну базу для всего. У каждого хранилища — своя роль.
+
+> **Стадийность.** Базовый стек — **PostgreSQL + Redis + NATS** в Docker.
+> Результаты проверок на старте пишутся в **PostgreSQL**. **ClickHouse вводится
+> позже** (фаза 8), когда объём метрик перерастёт PostgreSQL.
 
 ## PostgreSQL — источник истины
 
@@ -16,10 +20,18 @@
 Доступ — через pgx + sqlc (типобезопасные запросы, без ORM). Миграции — Goose,
 в каталоге [`../migrations/`](../migrations/).
 
-## ClickHouse — метрики проверок
+## Метрики проверок: PostgreSQL сейчас → ClickHouse потом
 
-Хранит миллионы результатов проверок: latency, status code, DNS/TLS/TCP timings,
-response size, error category, agent region, monitor id, timestamp.
+**На старте** результаты проверок (latency, status code, DNS/TLS/TCP timings,
+response size, error category, agent region, monitor id, timestamp) хранятся в
+**PostgreSQL** — с продуманной схемой, индексами по (monitor_id, timestamp),
+партиционированием по времени и фоновой агрегацией/ретеншеном. Этого достаточно для
+старта и первых десятков агентов.
+
+**ClickHouse — поздняя стадия (фаза 8).** Когда объём записей начнёт перерастать
+PostgreSQL (миллионы проверок, тяжёлые агрегации и latency percentiles), метрики
+переезжают в ClickHouse. Слой доступа к метрикам изолируется за интерфейсом, чтобы
+переезд не затронул остальной код.
 
 Пример записи:
 

@@ -16,6 +16,22 @@
 
 ---
 
+## 2026-07-11 — Решение по инфраструктуре: только Docker, метрики/observability поздней стадией
+
+- **Фаза:** 0 — Фундамент
+- **Что сделано:** зафиксирована стадийность инфраструктуры во всех доках.
+  - **Только Docker / Docker Compose. Kubernetes убран** — папка
+    `deployments/kubernetes` удалена, упоминания заменены на Docker-масштабирование.
+  - **Базовый стек:** PostgreSQL + Redis + NATS. Результаты проверок на старте — в
+    **PostgreSQL**.
+  - **ClickHouse, Prometheus, Grafana — поздняя стадия** (ClickHouse → фаза 8,
+    Prometheus/Grafana → фаза 7). Держим за отдельными compose-профилями.
+  - Обновлены: README, AGENTS, ROADMAP, docs/architecture, docs/database,
+    deployments/docker-compose, .claude/agents/infra, .env.example, README пакетов.
+- **Тесты:** документация, кода нет.
+- **Коммит/PR:** `docs: simplify stack to Docker-only, defer ClickHouse/Prometheus/Grafana`.
+- **Дальше:** каркас `uptime-server` + базовый docker-compose (postgres/redis/nats).
+
 ## 2026-07-11 — Инициализация проекта
 
 - **Фаза:** 0 — Фундамент

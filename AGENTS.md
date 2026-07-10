@@ -33,10 +33,14 @@ uptime-server worker      # incident engine + notification workers
 
 | Хранилище | Роль | Что нельзя |
 |-----------|------|-----------|
-| PostgreSQL | Источник истины (users, orgs, monitors, incidents…) | — |
-| ClickHouse | Результаты проверок (latency, timings, коды) | Хранить конфигурацию |
+| PostgreSQL | Источник истины + **результаты проверок на старте** | — |
 | Redis | Кэш, rate-limit, locks, presence, debounce | Быть основной очередью |
 | NATS JetStream | Шина задач и событий | Хранить состояние как в БД |
+| ClickHouse | Метрики проверок **при росте** (поздняя стадия) | Вводить раньше времени |
+
+> **Стадийность.** Базовый стек — только PostgreSQL + Redis + NATS в Docker.
+> **ClickHouse, Prometheus, Grafana — поздняя стадия.** **Kubernetes не используется**
+> — деплой только через Docker / Docker Compose.
 
 **Агенты не имеют прямого доступа к PostgreSQL/ClickHouse.** Только
 `Agent → Control Plane / NATS`. См. [docs/agents-protocol.md](docs/agents-protocol.md).
