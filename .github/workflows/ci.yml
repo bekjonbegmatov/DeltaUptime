@@ -29,8 +29,13 @@ jobs:
       - name: Verify go.mod is tidy
         run: |
           go mod tidy
-          git diff --exit-code go.mod go.sum || {
-            echo "::error::go.mod/go.sum not tidy — run 'go mod tidy'"; exit 1; }
+          # --porcelain корректно работает даже когда go.sum ещё нет (нет зависимостей)
+          if [ -n "$(git status --porcelain -- go.mod go.sum)" ]; then
+            echo "::error::go.mod/go.sum not tidy — run 'go mod tidy'"
+            git status --porcelain -- go.mod go.sum
+            git diff -- go.mod go.sum
+            exit 1
+          fi
 
       - name: Build
         run: go build ./...
@@ -51,7 +56,7 @@ jobs:
           go-version: "1.25"
           cache: true
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8 # v8 требуется для golangci-lint v2
         with:
           version: v2.12.2
           args: --timeout=5m
