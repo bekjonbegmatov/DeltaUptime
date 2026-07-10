@@ -13,12 +13,13 @@ control-plane/
 ├── cmd/uptime-server/       # main: подхват сигналов + dispatch
 └── internal/
     ├── app/                 # разбор подкоманд (тестируемо, не в main)
+    ├── auth/                # Argon2id + JWT access + rotating refresh tokens
     ├── config/              # загрузка конфигурации из env
     └── httpapi/             # HTTP-сервер: /healthz, /readyz, graceful shutdown
 ```
 
-Дальше сюда добавляются модули (auth, users, organizations, monitors, incidents…),
-роутер, вероятно, переедет на Chi, появится доступ к БД через pgx + sqlc.
+Дальше сюда добавляются users, organizations, monitors, incidents и прочие модули;
+роутер, вероятно, позже переедет на Chi.
 
 ## Локально
 
@@ -28,8 +29,9 @@ make build && ./bin/uptime-server api    # или: make run-api
 make check                               # go vet + go test (перед коммитом)
 ```
 
-Текущий статус — только stdlib (без внешних зависимостей); `migrate`, `scheduler`,
-`worker` — заглушки. См. [../../ROADMAP.md](../../ROADMAP.md) фаза 0.
+Сейчас уже есть базовый auth (`/v1/auth/register|login|refresh|me`) поверх
+PostgreSQL/sqlc. `scheduler` и `worker` пока остаются заглушками. См.
+[../../ROADMAP.md](../../ROADMAP.md) фазы 0–1.
 
 Общая архитектура — [../../docs/architecture.md](../../docs/architecture.md),
 правила — [../../AGENTS.md](../../AGENTS.md).

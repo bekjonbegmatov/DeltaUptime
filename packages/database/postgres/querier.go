@@ -11,9 +11,11 @@ import (
 )
 
 type Querier interface {
+	CreateAuthRefreshToken(ctx context.Context, arg CreateAuthRefreshTokenParams) (AuthRefreshToken, error)
 	CreateMembership(ctx context.Context, arg CreateMembershipParams) (Membership, error)
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	GetAuthRefreshTokenByTokenHash(ctx context.Context, tokenHash string) (AuthRefreshToken, error)
 	GetMembership(ctx context.Context, arg GetMembershipParams) (Membership, error)
 	GetOrganizationByID(ctx context.Context, id pgtype.UUID) (Organization, error)
 	GetOrganizationBySlug(ctx context.Context, slug string) (Organization, error)
@@ -23,6 +25,8 @@ type Querier interface {
 	ListMembershipsByUser(ctx context.Context, userID pgtype.UUID) ([]Membership, error)
 	ListOrganizationsByUser(ctx context.Context, userID pgtype.UUID) ([]ListOrganizationsByUserRow, error)
 	ListUsersByOrganization(ctx context.Context, organizationID pgtype.UUID) ([]ListUsersByOrganizationRow, error)
+	RevokeAuthRefreshToken(ctx context.Context, id pgtype.UUID) (AuthRefreshToken, error)
+	RotateAuthRefreshToken(ctx context.Context, arg RotateAuthRefreshTokenParams) (AuthRefreshToken, error)
 }
 
 var _ Querier = (*Queries)(nil)
