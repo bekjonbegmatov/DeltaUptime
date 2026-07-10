@@ -8,6 +8,32 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ApiKey struct {
+	ID              pgtype.UUID        `json:"id"`
+	OrganizationID  pgtype.UUID        `json:"organization_id"`
+	CreatedByUserID pgtype.UUID        `json:"created_by_user_id"`
+	Name            string             `json:"name"`
+	KeyPrefix       string             `json:"key_prefix"`
+	KeyHash         string             `json:"key_hash"`
+	Scopes          []string           `json:"scopes"`
+	LastUsedAt      pgtype.Timestamptz `json:"last_used_at"`
+	RevokedAt       pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
+type AuditLog struct {
+	ID             pgtype.UUID        `json:"id"`
+	OrganizationID pgtype.UUID        `json:"organization_id"`
+	ActorType      string             `json:"actor_type"`
+	ActorUserID    pgtype.UUID        `json:"actor_user_id"`
+	ActorApiKeyID  pgtype.UUID        `json:"actor_api_key_id"`
+	Action         string             `json:"action"`
+	TargetType     string             `json:"target_type"`
+	TargetID       string             `json:"target_id"`
+	Metadata       []byte             `json:"metadata"`
+	OccurredAt     pgtype.Timestamptz `json:"occurred_at"`
+}
+
 type AuthRefreshToken struct {
 	ID                pgtype.UUID        `json:"id"`
 	UserID            pgtype.UUID        `json:"user_id"`
@@ -43,4 +69,13 @@ type User struct {
 	IsSystemAdmin bool               `json:"is_system_admin"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type UserTotpCredential struct {
+	UserID           pgtype.UUID        `json:"user_id"`
+	SecretCiphertext []byte             `json:"secret_ciphertext"`
+	SecretNonce      []byte             `json:"secret_nonce"`
+	EnabledAt        pgtype.Timestamptz `json:"enabled_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }

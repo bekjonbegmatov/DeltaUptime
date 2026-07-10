@@ -38,6 +38,7 @@ func TestLoad_Overrides(t *testing.T) {
 	t.Setenv("POSTGRES_DSN", "postgres://x")
 	t.Setenv("JWT_ACCESS_SECRET", "access")
 	t.Setenv("JWT_REFRESH_SECRET", "refresh")
+	t.Setenv("SECRETS_MASTER_KEY", "secret-master-key")
 	t.Setenv("ACCESS_TOKEN_TTL", "30m")
 	t.Setenv("REFRESH_TOKEN_TTL", "24h")
 

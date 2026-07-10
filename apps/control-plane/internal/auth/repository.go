@@ -35,6 +35,14 @@ func (r *storeRepository) Begin(ctx context.Context) (Tx, error) {
 	}, nil
 }
 
+func (r *storeRepository) CreateAPIKey(ctx context.Context, arg postgres.CreateAPIKeyParams) (postgres.ApiKey, error) {
+	return r.store.Queries.CreateAPIKey(ctx, arg)
+}
+
+func (r *storeRepository) CreateAuditLog(ctx context.Context, arg postgres.CreateAuditLogParams) (postgres.AuditLog, error) {
+	return r.store.Queries.CreateAuditLog(ctx, arg)
+}
+
 func (r *storeRepository) CreateAuthRefreshToken(ctx context.Context, arg postgres.CreateAuthRefreshTokenParams) (postgres.AuthRefreshToken, error) {
 	return r.store.Queries.CreateAuthRefreshToken(ctx, arg)
 }
@@ -51,8 +59,36 @@ func (r *storeRepository) CreateUser(ctx context.Context, arg postgres.CreateUse
 	return r.store.Queries.CreateUser(ctx, arg)
 }
 
+func (r *storeRepository) DeleteUserTOTPCredential(ctx context.Context, userID pgtype.UUID) error {
+	return r.store.Queries.DeleteUserTOTPCredential(ctx, userID)
+}
+
+func (r *storeRepository) EnableUserTOTPCredential(ctx context.Context, userID pgtype.UUID) (postgres.UserTotpCredential, error) {
+	return r.store.Queries.EnableUserTOTPCredential(ctx, userID)
+}
+
+func (r *storeRepository) GetAPIKeyByID(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error) {
+	return r.store.Queries.GetAPIKeyByID(ctx, id)
+}
+
+func (r *storeRepository) GetAPIKeyByPrefix(ctx context.Context, keyPrefix string) (postgres.ApiKey, error) {
+	return r.store.Queries.GetAPIKeyByPrefix(ctx, keyPrefix)
+}
+
 func (r *storeRepository) GetAuthRefreshTokenByTokenHash(ctx context.Context, tokenHash string) (postgres.AuthRefreshToken, error) {
 	return r.store.Queries.GetAuthRefreshTokenByTokenHash(ctx, tokenHash)
+}
+
+func (r *storeRepository) GetMembership(ctx context.Context, arg postgres.GetMembershipParams) (postgres.Membership, error) {
+	return r.store.Queries.GetMembership(ctx, arg)
+}
+
+func (r *storeRepository) GetOrganizationByID(ctx context.Context, id pgtype.UUID) (postgres.Organization, error) {
+	return r.store.Queries.GetOrganizationByID(ctx, id)
+}
+
+func (r *storeRepository) GetOrganizationBySlug(ctx context.Context, slug string) (postgres.Organization, error) {
+	return r.store.Queries.GetOrganizationBySlug(ctx, slug)
 }
 
 func (r *storeRepository) GetUserByEmail(ctx context.Context, email string) (postgres.User, error) {
@@ -63,12 +99,44 @@ func (r *storeRepository) GetUserByID(ctx context.Context, id pgtype.UUID) (post
 	return r.store.Queries.GetUserByID(ctx, id)
 }
 
+func (r *storeRepository) GetUserTOTPCredentialByUserID(ctx context.Context, userID pgtype.UUID) (postgres.UserTotpCredential, error) {
+	return r.store.Queries.GetUserTOTPCredentialByUserID(ctx, userID)
+}
+
+func (r *storeRepository) ListAPIKeysByOrganization(ctx context.Context, organizationID pgtype.UUID) ([]postgres.ApiKey, error) {
+	return r.store.Queries.ListAPIKeysByOrganization(ctx, organizationID)
+}
+
+func (r *storeRepository) ListAuditLogsByOrganization(ctx context.Context, arg postgres.ListAuditLogsByOrganizationParams) ([]postgres.AuditLog, error) {
+	return r.store.Queries.ListAuditLogsByOrganization(ctx, arg)
+}
+
 func (r *storeRepository) ListOrganizationsByUser(ctx context.Context, userID pgtype.UUID) ([]postgres.ListOrganizationsByUserRow, error) {
 	return r.store.Queries.ListOrganizationsByUser(ctx, userID)
 }
 
+func (r *storeRepository) ListUsersByOrganization(ctx context.Context, organizationID pgtype.UUID) ([]postgres.ListUsersByOrganizationRow, error) {
+	return r.store.Queries.ListUsersByOrganization(ctx, organizationID)
+}
+
+func (r *storeRepository) RevokeAPIKey(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error) {
+	return r.store.Queries.RevokeAPIKey(ctx, id)
+}
+
 func (r *storeRepository) RotateAuthRefreshToken(ctx context.Context, arg postgres.RotateAuthRefreshTokenParams) (postgres.AuthRefreshToken, error) {
 	return r.store.Queries.RotateAuthRefreshToken(ctx, arg)
+}
+
+func (r *storeRepository) TouchAPIKeyLastUsed(ctx context.Context, id pgtype.UUID) (postgres.ApiKey, error) {
+	return r.store.Queries.TouchAPIKeyLastUsed(ctx, id)
+}
+
+func (r *storeRepository) UpdateMembershipRole(ctx context.Context, arg postgres.UpdateMembershipRoleParams) (postgres.Membership, error) {
+	return r.store.Queries.UpdateMembershipRole(ctx, arg)
+}
+
+func (r *storeRepository) UpsertUserTOTPCredential(ctx context.Context, arg postgres.UpsertUserTOTPCredentialParams) (postgres.UserTotpCredential, error) {
+	return r.store.Queries.UpsertUserTOTPCredential(ctx, arg)
 }
 
 func (tx *storeTx) Commit(ctx context.Context) error {

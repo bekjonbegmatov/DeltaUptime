@@ -16,6 +16,36 @@
 
 ---
 
+## 2026-07-11 — Identity controls: TOTP, tenancy API, RBAC, API keys, audit log
+
+- **Фаза:** 1 — Идентичность и мультитенантность
+- **Что сделано:**
+  - Добавлена миграция `00003_phase1_identity_controls.sql`:
+    `user_totp_credentials`, `api_keys`, `audit_logs`.
+  - В `sqlc` добавлены typed-запросы для TOTP, API keys, audit log и обновления
+    membership role.
+  - `internal/auth` расширен: encrypted secrets (`SECRETS_MASTER_KEY`), TOTP setup /
+    enable / disable, проверка TOTP при login, organization-aware principal model.
+  - Реализованы permission-based policy checks для preset-ролей
+    `owner/admin/operator/viewer/billing`.
+  - Добавлены HTTP-роуты:
+    - `POST /v1/auth/totp/setup|enable|disable`
+    - `GET /v1/organizations`
+    - `GET /v1/organizations/{slug}`
+    - `GET/POST/PATCH /v1/organizations/{slug}/memberships`
+    - `GET/POST/DELETE /v1/organizations/{slug}/api-keys`
+    - `GET /v1/organizations/{slug}/audit-logs`
+  - API keys теперь имеют scopes и могут аутентифицировать org-scoped API через
+    header `X-API-Key`.
+  - Все чувствительные события identity-flow пишутся в `audit_logs`.
+- **Тесты (все зелёные):**
+  - `./.bin/sqlc compile`
+  - `go build ./...`
+  - `go test ./...`
+  - `go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./...` → `0 issues`
+- **Коммит/PR:** ветка `feat/auth-totp`.
+- **Дальше:** WebAuthn, затем можно считать Phase 1 полностью закрытой.
+
 ## 2026-07-11 — Базовый auth: Argon2id + access JWT + rotating refresh
 
 - **Фаза:** 1 — Идентичность и мультитенантность

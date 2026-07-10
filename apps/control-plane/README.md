@@ -13,7 +13,7 @@ control-plane/
 ├── cmd/uptime-server/       # main: подхват сигналов + dispatch
 └── internal/
     ├── app/                 # разбор подкоманд (тестируемо, не в main)
-    ├── auth/                # Argon2id + JWT access + rotating refresh tokens
+    ├── auth/                # JWT/TOTP/api-keys/RBAC/audit для identity-фазы
     ├── config/              # загрузка конфигурации из env
     └── httpapi/             # HTTP-сервер: /healthz, /readyz, graceful shutdown
 ```
@@ -29,9 +29,14 @@ make build && ./bin/uptime-server api    # или: make run-api
 make check                               # go vet + go test (перед коммитом)
 ```
 
-Сейчас уже есть базовый auth (`/v1/auth/register|login|refresh|me`) поверх
-PostgreSQL/sqlc. `scheduler` и `worker` пока остаются заглушками. См.
-[../../ROADMAP.md](../../ROADMAP.md) фазы 0–1.
+Сейчас уже есть identity-слой поверх PostgreSQL/sqlc:
+
+- `/v1/auth/register|login|refresh|me`
+- `/v1/auth/totp/setup|enable|disable`
+- `/v1/organizations/...` для membership/API-key/audit управления
+
+`scheduler` и `worker` пока остаются заглушками. См. [../../ROADMAP.md](../../ROADMAP.md)
+фазы 0–1.
 
 Общая архитектура — [../../docs/architecture.md](../../docs/architecture.md),
 правила — [../../AGENTS.md](../../AGENTS.md).
