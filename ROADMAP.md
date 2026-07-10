@@ -15,7 +15,8 @@ probe-агенты, регионы и инциденты).
       (ClickHouse/Prometheus/Grafana за профилями — поздняя стадия)
 - [x] Каркас Go-бинаря `uptime-server` с подкомандами (api/scheduler/worker/migrate)
       — api отдаёт `/healthz` `/readyz`, graceful shutdown, config из env, тесты
-- [ ] Миграции (Goose) + sqlc-конфиг (migrate пока заглушка)
+- [x] Миграции (Goose, embed в бинарь) — `migrate` рабочий, первая схема
+      (organizations/users/memberships); sqlc-конфиг — TODO
 - [~] Structured logging (slog) есть; OpenTelemetry-ready интерфейсы — TODO
 - [x] CI (GitHub Actions): build + vet + test(-race) + golangci-lint + compose-validate
 

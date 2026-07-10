@@ -37,6 +37,19 @@ func TestRun_UnknownCommand(t *testing.T) {
 	}
 }
 
+func TestRun_MigrateWithoutDSN(t *testing.T) {
+	t.Setenv("POSTGRES_DSN", "") // no database configured
+
+	var out strings.Builder
+	err := Run(context.Background(), []string{"migrate"}, &out)
+	if err == nil {
+		t.Fatal("expected error when POSTGRES_DSN is empty, got nil")
+	}
+	if !strings.Contains(err.Error(), "POSTGRES_DSN") {
+		t.Fatalf("error should mention POSTGRES_DSN, got: %v", err)
+	}
+}
+
 func TestRun_PlaceholderStopsOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // already cancelled: placeholder must return immediately

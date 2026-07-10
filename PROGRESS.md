@@ -16,6 +16,28 @@
 
 ---
 
+## 2026-07-11 — Миграции (Goose) + первая схема PostgreSQL
+
+- **Фаза:** 0→1 — Фундамент / мультитенантность
+- **Что сделано:**
+  - Зависимости: `pressly/goose/v3`, `jackc/pgx/v5` (+ go.sum).
+  - Пакет `deltauptime/migrations` — встраивает `*.sql` через `//go:embed`
+    (миграции едут внутри бинаря; отдельная папка при деплое не нужна).
+  - `internal/database/migrate.go` — раннер goose поверх pgx (`sql.Open("pgx")`),
+    ping, `UpContext`, slog-адаптер логгера. Идемпотентно.
+  - Подкоманда `migrate` реально применяет миграции (заглушка убрана).
+  - Первая миграция `00001_init.sql`: organizations, users, memberships
+    (роль-пресеты через CHECK, каскады, индексы, extension pgcrypto).
+  - Тесты: наличие встроенных миграций + требование Up/Down у каждой; `migrate`
+    без DSN → понятная ошибка.
+- **Тесты (все зелёные):**
+  - `go build/vet/test`, golangci-lint v2.12.2 → 0 issues.
+  - **E2E на реальном Postgres (docker):** `migrate` создал 4 таблицы
+    (+goose_db_version), version=1; повторный запуск — no-op (идемпотентность);
+    пустой DSN → exit 1.
+- **Коммит/PR:** ветка `feat/db-migrations`.
+- **Дальше:** sqlc-конфиг + первые запросы (orgs/users), затем auth (Argon2id).
+
 ## 2026-07-11 — CI (GitHub Actions) + подключён GitHub remote
 
 - **Фаза:** 0 — Фундамент

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 
 	"deltauptime/apps/control-plane/internal/config"
+	"deltauptime/apps/control-plane/internal/database"
 	"deltauptime/apps/control-plane/internal/httpapi"
 )
 
@@ -69,14 +70,13 @@ func runAPI(ctx context.Context, log *slog.Logger) error {
 	return httpapi.Serve(ctx, srv, log)
 }
 
-// runMigrate is a placeholder until the Goose-based migrator lands (ROADMAP phase 0).
+// runMigrate applies pending database migrations via goose.
 func runMigrate(ctx context.Context, log *slog.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	log.InfoContext(ctx, "migrate: not implemented yet", "postgres_dsn_set", cfg.PostgresDSN != "")
-	return nil
+	return database.Migrate(ctx, cfg.PostgresDSN, log)
 }
 
 // runPlaceholder blocks until ctx is cancelled. Real scheduler/worker loops
