@@ -16,7 +16,7 @@ probe-агенты, регионы и инциденты).
 - [x] Каркас Go-бинаря `uptime-server` с подкомандами (api/scheduler/worker/migrate)
       — api отдаёт `/healthz` `/readyz`, graceful shutdown, config из env, тесты
 - [x] Миграции (Goose, embed в бинарь) — `migrate` рабочий, первая схема
-      (organizations/users/memberships); sqlc-конфиг — TODO
+      (organizations/users/memberships); sqlc-конфиг + первые typed-запросы готовы
 - [~] Structured logging (slog) есть; OpenTelemetry-ready интерфейсы — TODO
 - [x] CI (GitHub Actions): build + vet + test(-race) + golangci-lint + compose-validate
 
